@@ -67,7 +67,7 @@
 
     <!-- Navigation Bar -->
     <div class="navbar">
-        <a href="#">Home</a>
+        <a href="index.html">Home</a>
         <button onclick="initializeBot()">Play Against Bot</button>
         <a href="#">Settings</a>
     </div>
@@ -106,7 +106,7 @@
         });
         
         const moveLog = document.getElementById("moveLog");
-        let bot = new Worker("https://chessdb.cn/stockfish/stockfish.js");
+        let bot = new Worker("stockfish.js");
         let botELO = 100;
         let currentPieceList = [];
         let currentIndex = 0;
