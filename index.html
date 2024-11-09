@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Chess Game</title>
+    
+    <!-- Chessboard.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f9;
+        }
+        .navbar {
+            background-color: #333;
+            padding: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .navbar a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+        }
+        .navbar button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        #chessboard {
+            width: 400px;
+            margin-top: 20px;
+        }
+        .move-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #eaeaea;
+            padding: 10px;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <a href="#">Home</a>
+        <button onclick="startGame()">Play Against Bot</button>
+        <a href="#">Settings</a>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container" aria-live="polite" aria-atomic="true">
+        <h1>Play Chess Against the Bot</h1>
+        <div class="move-log" id="moveLog" role="log" aria-live="polite">Moves: </div>
+        
+        <!-- Bot Difficulty Selector -->
+        <label for="botDifficulty">Select Bot Strength:</label>
+        <select id="botDifficulty">
+            <option value="100">100 ELO</option>
+            <option value="250">250 ELO</option>
+            <option value="2500">2500 ELO</option>
+        </select>
+
+        <!-- Chessboard -->
+        <div id="chessboard" aria-label="Chessboard" role="application"></div>
+    </div>
+
+    <!-- Chess.js and Chessboard.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+    <!-- Stockfish.js from chessdb.cn -->
+    <script>
+        const game = new Chess();
+        const board = Chessboard('chessboard', {
+            draggable: true,
+            position: 'start', onDrop: handleMove,
+            onChange: updateAriaLabels
+        });
+        
+        const moveLog = document.getElementById("moveLog");
+        let bot = new Worker("https://chessdb.cn/stockfish/stockfish.js");
+        let botELO = 100;
+        let currentPieceList = [];
+        let currentIndex = 0;
+
+        document.getElementById("botDifficulty").addEventListener("change", function () {
+            botELO = parseInt(this.value);
+        });
+
+        function startGame() {
+            game.reset();
+            board.position('start');
+            moveLog.textContent = "Moves: ";
+            updateAriaLabels();
+        }
+
+        function updateMoveLog(move) {
+            moveLog.textContent += ` ${move.from}-${move.to}, `;
+        }
+
+        function handleMove(source, target) {
+            let move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q'
+            });
+            if (move === null) return 'snapback'; updateMoveLog(move);
+            announceMove(move);
+            updateAriaLabels();
+            setTimeout(() => makeBotMove(), 250);
+        }
+
+        function announceMove(move) {
+            let piece = move.piece.charAt(0).toUpperCase() + move.piece.slice(1);
+            let announcement = `${piece} moves from ${move.from} to ${move.to}`;
+            moveLog.textContent += announcement + ", ";
+        }
+
+        function makeBotMove() {
+            if (game.game_over()) return;
+            bot.postMessage(`setoption name Skill Level value ${botELO}`);
+            bot.postMessage(`position fen ${game.fen()}`);
+            bot.postMessage('go movetime 500');
+
+            bot.onmessage = function (e) {
+                const message = e.data;
+                if (message.startsWith('bestmove')) {
+                    const bestMove = message.split(' ')[1];
+                    let move = game.move({
+                        from: bestMove.substring(0, 2),
+                        to: bestMove.substring(2, 4),
+                        promotion: 'q'
+                    });
+                    board.position(game.fen());
+                    updateMoveLog(bestMove.substring(0, 2) + "-" + bestMove.substring(2, 4));
+                    announceMove(move);
+                    updateAriaLabels();
+                }
+            };
+        }
+
+        function updateAriaLabels() {
+            const squares = document.querySelectorAll('#chessboard .square-55d63');
+            squares.forEach(square => {
+                const position = square.getAttribute('data-square');
+                const piece = game.get(position);
+                const squareColor = (position[0].charCodeAt(0) + parseInt(position[1])) % 2 === 0 ? 'black' : 'white';
+                const pieceColor = piece ? (piece.color === 'w' ? 'White' : 'Black') : '';
+                const pieceType = piece ? `${pieceColor} ${piece.type.charAt(0).toUpperCase() + piece.type.slice(1)}` : 'Empty'; square.setAttribute('aria-label', `${pieceType} on ${position}, ${squareColor} square`);
+            });
+        }
+
+        // Keyboard Shortcuts for Piece Selection
+        document.addEventListener('keydown', (event) => {
+            const key = event.key.toLowerCase();
+            if (['q', 'k', 'n', 'r', 'b', 'p'].includes(key)) {
+                selectPiece(key);
+            }
+        });
+
+        function selectPiece(pieceType) {
+            currentPieceList = [];
+            currentIndex = 0;
+
+            for (const square of game.SQUARES) {
+                const piece = game.get(square);
+                if (piece && piece.type === pieceType) {
+                    currentPieceList.push({ position: square, color: piece.color });
+                }
+            }
+
+            if (currentPieceList.length > 0) {
+                announcePieceSelection(pieceType);
+            }
+        }
+
+        function announcePieceSelection(pieceType) {
+            if (currentPieceList.length === 0) return;
+
+            const piece = currentPieceList[currentIndex];
+            const color = piece.color === 'w' ? 'White' : 'Black';
+            const position = piece.position;
+            const announcement = `${color} ${pieceType.toUpperCase()} at ${position}`;
+            moveLog.textContent += `${announcement}, `;
+            currentIndex = (currentIndex + 1) % currentPieceList.length;
+        }
+    </script>
+</body>
+</html>
