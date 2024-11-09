@@ -68,7 +68,7 @@
     <!-- Navigation Bar -->
     <div class="navbar">
         <a href="#">Home</a>
-        <button onclick="startGame()">Play Against Bot</button>
+        <button onclick="initializeBot()">Play Against Bot</button>
         <a href="#">Settings</a>
     </div>
 
@@ -96,8 +96,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 
-    <!-- Stockfish.js from chessdb.cn -->
-    <script>
+    <!-- Stockfish.js from chessdb.cn --> <script>
         const game = new Chess();
         const board = Chessboard('chessboard', {
             draggable: true,
@@ -112,22 +111,21 @@
         let currentPieceList = [];
         let currentIndex = 0;
 
-        // Initialize bot settings when "Play" button is clicked
+        // Initialize bot settings and start a new game
         function initializeBot() {
+            // Get the selected ELO level
             botELO = parseInt(document.getElementById("botDifficulty").value);
-            startGame();
-        }
-
-        function startGame() {
+            
+            // Reset game and board
             game.reset();
             board.position('start');
             moveLog.textContent = "Moves: ";
+            
             updateAriaLabels();
         }
 
         function updateMoveLog(move) {
-            moveLog.textContent += ` ${move.from}-${move.to}, `;
-        }
+            moveLog.textContent += ` ${move.from}-${move.to}, `; }
 
         function handleMove(source, target) {
             let move = game.move({
@@ -198,9 +196,10 @@
             for (const square of game.SQUARES) {
                 const piece = game.get(square);
                 if (piece && piece.type === pieceType) {
-                    currentPieceList.push({ position: square, color: piece.color });
-                }
-            }    if (currentPieceList.length > 0) {
+                    currentPieceList.push({ position: square, color: piece.color });                }
+            }
+
+            if (currentPieceList.length > 0) {
                 announcePieceSelection(pieceType);
             }
         }
