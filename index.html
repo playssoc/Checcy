@@ -113,8 +113,12 @@
 
         // Initialize bot settings and start a new game
         function initializeBot() {
+            // Log to ensure the function is called
+            moveLog.textContent += "\ninitializeBot called\n";
+
             // Get the selected ELO level
             botELO = parseInt(document.getElementById("botDifficulty").value);
+            moveLog.textContent += `Selected ELO: ${botELO}\n`;
             
             // Reset game and board
             game.reset();
@@ -196,7 +200,8 @@
             for (const square of game.SQUARES) {
                 const piece = game.get(square);
                 if (piece && piece.type === pieceType) {
-                    currentPieceList.push({ position: square, color: piece.color });                }
+                    currentPieceList.push({ position: square, color: piece.color });
+                }
             }
 
             if (currentPieceList.length > 0) {
