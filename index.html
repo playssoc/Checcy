@@ -56,9 +56,10 @@
             font-size: 14px;
             margin-bottom: 20px;
         }
-        select {
+        select, button {
             padding: 8px;
             font-size: 16px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -84,6 +85,9 @@
             <option value="2500">2500 ELO</option>
         </select>
 
+        <!-- Play Button -->
+        <button id="play" onclick="initializeBot()">Play</button>
+
         <!-- Chessboard -->
         <div id="chessboard" aria-label="Chessboard" role="application"></div>
     </div>
@@ -97,7 +101,8 @@
         const game = new Chess();
         const board = Chessboard('chessboard', {
             draggable: true,
-            position: 'start', onDrop: handleMove,
+            position: 'start',
+            onDrop: handleMove,
             onChange: updateAriaLabels
         });
         
@@ -107,9 +112,11 @@
         let currentPieceList = [];
         let currentIndex = 0;
 
-        document.getElementById("botDifficulty").addEventListener("change", function () {
-            botELO = parseInt(this.value);
-        });
+        // Initialize bot settings when "Play" button is clicked
+        function initializeBot() {
+            botELO = parseInt(document.getElementById("botDifficulty").value);
+            startGame();
+        }
 
         function startGame() {
             game.reset();
@@ -128,7 +135,8 @@
                 to: target,
                 promotion: 'q'
             });
-            if (move === null) return 'snapback'; updateMoveLog(move);
+            if (move === null) return 'snapback';
+            updateMoveLog(move);
             announceMove(move);
             updateAriaLabels();
             setTimeout(() => makeBotMove(), 250);
@@ -170,7 +178,8 @@
                 const piece = game.get(position);
                 const squareColor = (position[0].charCodeAt(0) + parseInt(position[1])) % 2 === 0 ? 'black' : 'white';
                 const pieceColor = piece ? (piece.color === 'w' ? 'White' : 'Black') : '';
-                const pieceType = piece ? `${pieceColor} ${piece.type.charAt(0).toUpperCase() + piece.type.slice(1)}` : 'Empty'; square.setAttribute('aria-label', `${pieceType} on ${position}, ${squareColor} square`);
+                const pieceType = piece ? `${pieceColor} ${piece.type.charAt(0).toUpperCase() + piece.type.slice(1)}` : 'Empty';
+                square.setAttribute('aria-label', `${pieceType} on ${position}, ${squareColor} square`);
             });
         }
 
@@ -191,9 +200,7 @@
                 if (piece && piece.type === pieceType) {
                     currentPieceList.push({ position: square, color: piece.color });
                 }
-            }
-
-            if (currentPieceList.length > 0) {
+            }    if (currentPieceList.length > 0) {
                 announcePieceSelection(pieceType);
             }
         }
@@ -209,5 +216,6 @@
             currentIndex = (currentIndex + 1) % currentPieceList.length;
         }
     </script>
+
 </body>
 </html>
